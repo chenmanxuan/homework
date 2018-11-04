@@ -1,0 +1,250 @@
+第1个链接：
+该concurrent.futures模块提供了一个用于异步执行callables的高级接口。
+可以使用线程，使用ThreadPoolExecutor或单独的进程 来执行异步执行 ProcessPoolExecutor。
+两者都实现相同的接口，由抽象Executor类定义。
+
+concurrent.futures.Executor：
+一个抽象类，提供异步执行调用的方法。它不应该直接使用，而是通过其具体的子类。
+submit（fn，* args，** kwargs ）
+将可调用的fn调度为执行， 并返回表示可调用执行的对象。fn(*args **kwargs)Future
+
+
+map（func，* iterables，timeout = None，chunksize = 1 ）
+与以下类似：map(func, *iterables)
+在iterables收集立即而不是懒洋洋地;
+func以异步方式执行，并且可以同时对func进行多次调用 。
+返回的迭代器引发一个concurrent.futures.TimeoutError if __next__()被调用，
+并且在从原始调用到超时秒后结果不可用Executor.map()。
+timeout可以是int或float。如果未指定超时None，则等待时间没有限制。
+使用时ProcessPoolExecutor，此方法将iterables切割 为多个块，并将其作为单独的任务提交给池。
+可以通过将chunksize设置为正整数来指定这些块的（近似）大小。
+
+
+shutdown（wait = True ）
+向执行者发出信号，表示当目前待处理的期货执行完毕时，它应该释放它正在使用的任何资源。
+关机后拨打Executor.submit()和拨打电话 Executor.map()会提出RuntimeError。
+如果使用with语句，则可以避免必须显式调用此方法 ，该语句将关闭Executor （等待，就像Executor.shutdown()使用wait set 调用一样True）
+
+
+ThreadPoolExecutor是一个Executor子类，它使用一个线程池来异步执行调用。
+当与a关联的callable Future等待另一个的结果时，可能会发生死锁Future
+
+
+
+class concurrent.futures.ThreadPoolExecutor（max_workers = None，thread_name_prefix =''，initializer = None，initargs =（））
+Executor使用最多max_workers 线程池的子类，以异步方式执行调用。
+
+initializer是一个可选的callable，在每个工作线程的开头调用; initargs是传递给初始化程序的参数元组。
+如果初始化程序引发异常，则所有当前挂起的作业都将引发BrokenThreadPool，以及向池中提交更多作业的任何尝试。
+
+改变在3.5版本中：如果max_workers是None或者没有给出，将默认为机器上的处理器，乘以数量5，
+假设ThreadPoolExecutor经常使用重叠的I / O，而不是CPU的工作，工人的数量应比工人数量ProcessPoolExecutor。
+
+在3.6版本的新功能：该thread_name_prefix加入参数允许用户控制由池更容易调试创建工作线程threading.Thread名。
+版本3.7中已更改：添加了初始化程序和initargs参数。
+
+
+本ProcessPoolExecutor类是Executor使用的过程池异步执行调用子类。
+ProcessPoolExecutor使用该multiprocessing模块，它允许它侧向全局解释器锁定，但也意味着只能执行和返回可选对象
+该__main__模块必须可由工作程序子进程导入。这意味着ProcessPoolExecutor在交互式解释器中不起作用。
+
+从提交给a的可调用调用Executor或Future方法ProcessPoolExecutor将导致死锁。
+
+
+class concurrent.futures.ProcessPoolExecutor（max_workers = None，mp_context = None，initializer = None，initargs =（））
+Executor使用最多max_workers进程池异步执行调用的子类。如果max_workers是None或者没有给出，将默认为机器上的处理器数量。
+如果max_workers低于或等于0，则将ValueError 引发a。 
+mp_context可以是多处理上下文或None。它将用于发射工人。如果mp_context是None或者没有给出，则使用默认的多重背景。
+
+initializer是一个可选的callable，在每个worker进程的开头调用; initargs是传递给初始化程序的参数元组。
+如果初始化程序引发异常，则所有当前挂起的作业都将引发BrokenProcessPool，以及向池中提交更多作业的任何尝试。
+
+版本3.3中更改：当其中一个工作进程突然终止时， BrokenProcessPool现在会引发错误。以前，行为未定义，但执行者或其未来的操作通常会冻结或死锁。
+
+版本3.7中已更改：添加了mp_context参数以允许用户控制池创建的工作进程的start_method。
+
+添加了初始化程序和initargs参数。
+
+所述Future类封装一个可调用的异步执行。 Future实例由Executor.submit()创建。
+
+类concurrent.futures.Future：
+封装可调用的异步执行。 Future 实例是由创建的Executor.submit()，不应该直接创建，除了测试。
+
+cancel（）
+尝试取消通话。如果当前正在执行呼叫且无法取消，则该方法将返回False，否则将取消呼叫并返回该方法True。
+
+cancelled（）
+True如果呼叫成功取消，则返回。
+
+running（）
+返回True如果当前正在执行的呼叫，无法取消。
+
+done（）
+返回True如果调用成功取消或结束运行。
+
+result（超时=无）
+返回调用返回的值。如果呼叫尚未完成，则此方法将等待超时秒。如果呼叫未在超时秒内完成，则将 concurrent.futures.TimeoutError引发a。
+timeout可以是int或float。如果未指定超时None，则等待时间没有限制。
+
+如果未来在完成之前取消CancelledError 则将被提出。
+
+如果引发了调用，则此方法将引发相同的异常。
+
+exception（超时=无）
+返回通话引发的异常。如果呼叫尚未完成，则此方法将等待超时秒。如果呼叫未在超时秒内完成，则将 concurrent.futures.TimeoutError引发a。 
+timeout可以是int或float。如果未指定超时None，则等待时间没有限制。
+
+如果未来在完成之前取消CancelledError 则将被提出。
+
+如果呼叫完成而没有提高，None则返回。
+
+add_done_callback（fn ）
+将可调用的fn附加到未来。 当未来被取消或完成运行时，将以未来作为唯一参数调用fn。
+
+添加的callables按添加顺序调用，并且始终在属于添加它们的进程的线程中调用。如果callable引发Exception子类，则会记录并忽略它。如果callable引发BaseException子类，则行为未定义。
+
+如果未来已经完成或取消，将立即调用fn。
+
+以下Future方法适用于单元测试和 Executor实现。
+
+set_running_or_notify_cancel（）
+只有Executor在执行与Future单元测试相关的工作之前，才能通过实现调用此方法。
+
+如果方法返回False则Future取消，Future.cancel()即被调用并返回True。等待Future完成的任何线程（即通过 as_completed()或wait()）将被唤醒。
+
+如果方法返回，True则表示Future未取消并且已经处于运行状态，即调用 Future.running()将返回True。
+
+此方法只能被调用一次后不能被称为 Future.set_result()或Future.set_exception()已被调用。
+
+set_result（结果）
+设置与相关的工作结果Future，以 结果。
+
+此方法仅应由Executor实现和单元测试使用。
+
+set_exception（例外）
+设置与相关的工作结果Future的 异常。Exception
+
+此方法仅应由Executor实现和单元测试使用。
+
+
+concurrent.futures.wait（fs，timeout = None，return_when = ALL_COMPLETED ）
+等待fs给出的Future实例（可能由不同Executor实例创建 ）完成。返回一组命名的2元组。
+第一组命名包含在等待完成之前完成（已完成或已取消）的期货。
+第二组名称包含未完成的未来。donenot_done
+
+timeout可用于控制返回前等待的最大秒数。 timeout可以是int或float。
+如果未指定超时None，则等待时间没有限制。
+
+return_when表示此函数何时返回。
+
+不变	描述
+FIRST_COMPLETED	当任何未来完成或取消时，该函数将返回。
+FIRST_EXCEPTION	当任何未来通过引发异常完成时，函数将返回。如果没有未来引发异常则等同于 ALL_COMPLETED。
+ALL_COMPLETED	所有期货结束或取消时，该功能将返回。
+
+
+concurrent.futures.as_completed（fs，超时=无）
+返回由fs给出的Future实例（可能由不同Executor实例创建）的迭代器，它们在完成（完成或被取消）时产生期货。
+fs复制的任何期货都将被退回一次。任何之前完成的期货都将首先产生。返回的迭代器引发一个if 被调用，并且在从原始调用到超时秒后结果不可用。 
+timeout可以是int或float。如果未指定超时，则等待时间没有限制。as_completed()concurrent.futures.TimeoutError__next__()as_completed()None
+
+
+异常类
+异常concurrent.futures.CancelledError
+取消未来时提出。
+
+异常concurrent.futures.TimeoutError
+当未来操作超过给定超时时引发。
+
+异常concurrent.futures.BrokenExecutor
+派生自此RuntimeError异常类是在执行程序因某种原因而中断时引发的，不能用于提交或执行新任务。
+
+版本3.7中的新功能。
+
+异常concurrent.futures.thread.BrokenThreadPool
+派生 自此BrokenExecutor异常类是在其中一个工作ThreadPoolExecutor程序初始化失败时引发的。
+
+版本3.7中的新功能。
+
+异常concurrent.futures.process.BrokenProcessPool
+派生自BrokenExecutor（以前 RuntimeError）的，当a的一个工人ProcessPoolExecutor以非干净的方式终止时（例如，如果它从外部被杀死），则引发此异常类。
+
+版本3.3中的新功能。
+
+
+第二个链接：
+异步和线程模型之间还有另一个区别。在线程系统中，暂停一个线程并执行另一个线程的决定很大程度上超出了程序员的控制范围。
+相反，它受操作系统的控制，并且程序员必须假设一个线程可以在几乎任何时候被挂起并替换为另一个线程。
+相反，在异步模型下，任务将继续运行，直到它明确地将控制权交给其他任务。这是螺纹外壳的进一步简化。
+
+
+那你为什么选择使用异步模型呢？至少有两个原因。首先，如果一个或多个任务负责为人类实现接口，则通过将任务交织在一起，系统可以保持响应于用户输入，
+同时仍然在“背景”中执行其他工作。因此，虽然后台任务可能不会更快地执行，但系统对于使用它的人来说会更愉快。
+
+一个常见的原因是它正在等待执行I / O，向外部设备传输数据或从外部设备传输数据。
+典型的CPU可以处理比磁盘或网络链路能够维持的数据传输速率快几个数量级的数据传输速率。
+因此，当磁盘或网络赶上时，执行大量I / O的同步程序将大部分时间被阻止。出于这个原因，这样的同步程序也称为阻塞程序。
+
+异步模型背后的基本思想是，异步程序在面对通常会在同步程序中阻塞的任务时，将执行一些仍然可以取得进展的其他任务。
+因此，当没有任务可以取得进展时，异步程序只会“阻塞”，因此被称为非阻塞程序。
+并且每个从一个任务切换到另一个任务对应于第一个任务要么完成要么要到达必须阻止的点。通过大量潜在的阻塞任务，异步程序可以通过减少等待的总时间来优于同步程序，同时将大致相等的时间用于单个任务的实际工作。
+
+但是，在整个较短时间内执行所有任务的意义上，异步系统有一个条件可以简单地胜过同步系统，有时非常大。
+当任务被迫等待或阻塞时，这种情况就会成立。
+
+
+与同步模型相比，异步模型在以下情况下表现最佳：
+
+有大量任务，因此可能始终至少有一项任务可以取得进展。
+这些任务执行大量I / O操作，导致同步程序在其他任务运行时浪费大量时间。
+这些任务在很大程度上是彼此独立的，因此几乎不需要任务间通信（因此一项任务需要等待另一项任务）。
+这些条件几乎完美地表征了客户端 - 服务器环境中的典型繁忙网络服务器（如Web服务器）。
+每个任务以接收请求和发送回复的形式表示一个带有I / O的客户端请求。
+客户端请求（主要是读取）在很大程度上是独立的。因此，网络服务器实现是异步模型的主要候选者，这就是为什么Twisted首先是网络库的原因。
+
+
+
+第三个链接：
+asyncio是一个使用async / await语法编写并发代码的库。
+asyncio用作多个Python异步框架的基础，这些框架提供高性能的网络和Web服务器，数据库连接库，分布式任务队列等。
+
+asyncio通常非常适合IO绑定和高级 结构化网络代码。
+
+asyncio提供了一组高级 API：
+
+同时运行Python协同程序并完全控制它们的执行;
+执行网络IO和IPC ;
+控制子过程 ;
+通过队列分配任务;
+同步并发代码;
+此外，还有一些用于库和框架开发人员的低级 API ：
+
+创建和管理事件循环，提供异步API networking，运行subprocesses，处理OS signals
+使用传输实现有效的协议 ;
+使用async / await语法桥接基于回调的库和代码。
+
+
+
+
+第四个链接：
+Event loop：为了协调事件（event），用户交互（user interaction），脚本（script），渲染（rendering），网络（networking）等，用户代理（user agent）必须使用事件循环（event loops）。
+协程 - 生成器，它消耗数据，但不生成数据。Python 2.5引入了一种新的语法，可以将值发送到生成器。
+任务 - 协同程序的调度程序。同时_step只需调用协程的下一步。
+事件循环 - 将其视为asyncio中的中央执行程序。
+当使用异步睡眠时（每次调用时await asyncio.sleep(1)），控制权将传递回事件循环，该循环从队列中运行另一个任务（任务A或任务B）。
+
+在标准睡眠的情况下 - 没有任何反应，线程就会挂掉。实际上，由于标准睡眠，当前线程释放python解释器，如果存在，它可以与其他线程一起使用。
+
+
+第五个链接：
+class asyncio.Queue（maxsize = 0，*，loop = None ）
+先进先出（FIFO）队列。
+
+task_done（）
+表明以前排队的任务已完成。
+
+由队列使用者使用。对于每个get()用于获取任务的人，后续调用task_done()告诉队列任务的处理完成。
+
+如果a join()当前正在阻止，则它将在所有项目都已处理后恢复（意味着task_done() 已收到已put() 进入队列的每个项目的呼叫）。
+
+ValueError如果调用的次数比放入队列中的项目多，则会引发。
